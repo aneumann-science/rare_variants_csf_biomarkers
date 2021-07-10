@@ -1,0 +1,95 @@
+# Load libraries
+library(SKAT)
+library(MetaSKAT)
+library(data.table)
+library(dplyr)
+library(pbmcapply)
+
+# Load ADNI phenotype and covariate data
+load("phenotypes/adni/mmse_adni.Rdata")
+load("phenotypes/adni/pca_adni.Rdata")
+load("phenotypes/adni/mmse_cov_adni.Rdata")
+load("phenotypes/adni/csf_cov_adni.Rdata")
+
+# Load EMIF phenotype and covariate data
+load("phenotypes/emif/mmse_emif.Rdata")
+load("phenotypes/emif/pca_emif.Rdata")
+load("phenotypes/emif/mmse_cov_emif.Rdata")
+load("phenotypes/emif/csf_cov_emif.Rdata")
+
+# Read in paths for available genes
+genes_adni <- list.files(path="../adni_emif_genotypes/adni/protein_coding/plink", pattern="*.raw", full.names=FALSE, recursive=FALSE)
+genes_emif <- list.files(path="../adni_emif_genotypes/emif/protein_coding/plink", pattern="*.raw", full.names=FALSE, recursive=FALSE)
+
+# Match genes present in both
+genes_adni <- genes_adni[genes_adni %in% genes_emif]
+genes_emif <- genes_emif[genes_emif %in% genes_adni]
+
+# Load SKAT-O Meta function
+source("skat_o_meta.R")
+
+####### MMSE
+mmse_meta_p_values.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta(mmse_adni.data,"MMSE",mmse_emif.data,"Baseline_MMSE",mmse_cov_adni.data,mmse_cov_emif.data,gene)
+}, mc.cores = 12)
+
+mmse_meta_results.data <- do.call(rbind, mmse_meta_p_values.list)
+save(mmse_meta_results.data, file = "results/protein_coding/nodiag/mmse_meta_results.Rdata")
+
+####### PCA
+# Tau
+tau_pc_meta_p_values.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta(pca_adni.data,"RC1",pca_emif.data,"RC1",csf_cov_adni.data,csf_cov_emif.data,gene)
+}, mc.cores = 12)
+
+tau_pc_meta_results.data <- do.call(rbind, tau_pc_meta_p_values.list)
+save(tau_pc_meta_results.data, file = "results/protein_coding/nodiag/tau_pc_meta_results.Rdata")
+
+# AB
+ab_pc_meta_p_values.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta(pca_adni.data,"RC2",pca_emif.data,"RC2",csf_cov_adni.data,csf_cov_emif.data,gene)
+}, mc.cores = 12)
+
+ab_pc_meta_results.data <- do.call(rbind, ab_pc_meta_p_values.list)
+save(ab_pc_meta_results.data, file = "results/protein_coding/nodiag/ab_pc_meta_results.Rdata")
+
+# NFL
+nfl_pc_meta_p_values.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta(pca_adni.data,"RC3",pca_emif.data,"RC3",csf_cov_adni.data,csf_cov_emif.data,gene)
+}, mc.cores = 12)
+
+nfl_pc_meta_results.data <- do.call(rbind, nfl_pc_meta_p_values.list)
+save(nfl_pc_meta_results.data, file = "results/protein_coding/nodiag/nfl_pc_meta_results.Rdata")
+
+# YKL40
+ykl40_pc_meta_p_values.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta(pca_adni.data,"RC4",pca_emif.data,"RC4",csf_cov_adni.data,csf_cov_emif.data,gene)
+}, mc.cores = 12)
+
+ykl40_pc_meta_results.data <- do.call(rbind, ykl40_pc_meta_p_values.list)
+save(ykl40_pc_meta_results.data, file = "results/protein_coding/nodiag/ykl40_pc_meta_results.Rdata")
+
+# Ng
+ng_pc_meta_p_values.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta(pca_adni.data,"RC5",pca_emif.data,"RC5",csf_cov_adni.data,csf_cov_emif.data,gene)
+}, mc.cores = 12)
+
+ng_pc_meta_results.data <- do.call(rbind, ng_pc_meta_p_values.list)
+save(ng_pc_meta_results.data, file = "results/protein_coding/nodiag/ng_pc_meta_results.Rdata")
+
+# Annotation for effective number of carriers
+source("skat_o_meta_annot.R")
+protein_coding.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta_annot(pca_adni.data,"RC5",pca_emif.data,"RC5",csf_cov_adni.data,csf_cov_emif.data,gene)
+}, mc.cores = 12)
+
+protein_coding_annot.data <- do.call(rbind, protein_coding.list)
+save(protein_coding_annot.data, file = "results/protein_coding/nodiag/protein_coding_annot.Rdata")
+
+####### MMSE
+protein_coding_mmse.list <- pbmclapply(genes_adni, function(gene) {
+  skat_o_meta_annot(mmse_adni.data,"MMSE",mmse_emif.data,"Baseline_MMSE",mmse_cov_adni.data,mmse_cov_emif.data,gene)
+}, mc.cores = 12)
+
+protein_coding_mmse.data <- do.call(rbind, protein_coding_mmse.list)
+save(protein_coding_mmse.data, file = "results/protein_coding/nodiag/protein_coding_mmse_annot.Rdata")
